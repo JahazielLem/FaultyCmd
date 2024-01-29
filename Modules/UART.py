@@ -29,6 +29,9 @@ class UART(threading.Thread):
 
     def set_serial_port(self, serial_port: str):
         self.serial_worker.port = serial_port
+    
+    def set_serial_baudrate(self, serial_baudrate: int):
+        self.serial_worker.baudrate = serial_baudrate
 
     def is_valid_connection(self) -> bool:
         try:
@@ -44,6 +47,9 @@ class UART(threading.Thread):
     def reset_buffer(self):
         self.serial_worker.reset_input_buffer()
         self.serial_worker.reset_output_buffer()
+
+    def cancel_recv(self):
+        self.recv_cancel = True
 
     def open(self):
         self.serial_worker.open()
@@ -65,19 +71,14 @@ class UART(threading.Thread):
         if not self.is_connected():
             self.open()
         try:
-            while True:
+            while not self.recv_cancel:
                 time.sleep(0.1)
                 
                 bytestream = self.serial_worker.readline()
-                string_bytestream = bytestream.decode("utf-8").strip()
-
-                if string_bytestream != "" or string_bytestream != "\r\n":
-                    if BoardStatus.get_status_by_value(string_bytestream):
-                        return string_bytestream
-                
-                if string_bytestream == "":
-                    break
-            return bytestream
+                if self.recv_cancel:
+                    self.recv_cancel = False
+                    return None
+                return bytestream
         except serial.SerialException as e:
             print(e)
             return None

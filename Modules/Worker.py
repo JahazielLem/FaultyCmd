@@ -22,7 +22,6 @@ class FaultyWorker(threading.Thread):
     
     def stop_workers(self):
         for worker in self.workers:
-            worker.stop_worker()
             worker.join()
     
     def run_workers(self):
@@ -48,20 +47,19 @@ class FaultyWorker(threading.Thread):
         time.sleep(0.1)
         typer.secho("Board connected.", fg=typer.colors.GREEN)
         typer.secho("[*] ARMING BOARD, BE CAREFULL!", fg=typer.colors.BRIGHT_YELLOW)
-        is_armed = self.board_uart.send_recv(self.board_configurator.board_commands.COMMAND_ARM.value.encode("utf-8"))
-        if not is_armed:
-            typer.secho("[*] BOARD COULD NOT BE ARMED.", fg=typer.colors.BRIGHT_RED)
-            return
+        self.board_uart.send(self.board_configurator.board_commands.COMMAND_DISARM.value.encode("utf-8"))
+        time.sleep(1)
+        self.board_uart.send(self.board_configurator.board_commands.COMMAND_ARM.value.encode("utf-8"))
         
         typer.secho("[*] ARMED BOARD.", fg=typer.colors.BRIGHT_GREEN)
         time.sleep(1)
         typer.secho(f"[*] SENDING {self.pulse_count} PULSES.", fg=typer.colors.BRIGHT_GREEN)
         for i in range(self.pulse_count):
             typer.secho(f"\t- SENDING PULSE {i+1} OF {self.pulse_count}.", fg=typer.colors.BRIGHT_GREEN)
-            self.board_uart.send_recv(self.board_configurator.board_commands.COMMAND_PULSE.value.encode("utf-8"))
+            self.board_uart.send(self.board_configurator.board_commands.COMMAND_PULSE.value.encode("utf-8"))
             time.sleep(self.pulse_time)
         
         typer.secho("DISARMING BOARD.", fg=typer.colors.BRIGHT_YELLOW)
-        self.board_uart.send_recv(self.board_configurator.board_commands.COMMAND_DISARM.value.encode("utf-8"))
+        self.board_uart.send(self.board_configurator.board_commands.COMMAND_DISARM.value.encode("utf-8"))
         self.board_uart.close()
         typer.secho("BOARD DISARMING.", fg=typer.colors.BRIGHT_YELLOW)

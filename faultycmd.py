@@ -1,8 +1,10 @@
 import typer
 import platform
 import signal
+import threading
+import sys
 from rich.console import Console
-from rich.table import Table    
+from rich.table import Table
 
 from Modules import CmdInterface
 from Modules import Worker
@@ -21,12 +23,14 @@ app = typer.Typer(
 )
 
 faulty_worker = Worker.FaultyWorker()
-
+workers = []
 
 def signal_handler(sig, frame):
     print("You pressed Ctrl+C!")
     faulty_worker.stop_workers()
-    exit(0)
+    for work in workers:
+        work.join()
+    sys.exit(0)
 
 @app.command("config")
 def config():
@@ -76,7 +80,7 @@ def faulty(
         "-c",
         help="Launch the CMD Interface.",
         show_default=True
-    )
+    ),
 ):
     """Setting up the FaultyCat. With this command you can configure the FaultyCat and launch faulty attacks."""
     typer.echo("Configuring the FaultyCat...")
@@ -102,7 +106,7 @@ def faulty(
         return
     
     faulty_worker.set_pulse_count(pulse_count)
-    faulty_worker.set_pulse_timeout(pulse_timeout)
+    faulty_worker.set_pulse_time(pulse_timeout)
     
     faulty_worker.start_faulty_attack()
         
